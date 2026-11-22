@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Ежедневный Гороскоп</title>
+  <script src="https://unpkg.com"></script>
+  <style>
+    :root {
+      --bg: #f2f3f5;
+      --card: #ffffff;
+      --text: #1c1d1f;
+      --subtext: #6d7885;
+      --accent: #2688eb;
+      --gold: #ff9e00;
+    }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+    }
+    .header p {
+      margin: 4px 0 0;
+      color: var(--subtext);
+      font-size: 14px;
+    }
+    .signs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .sign-btn {
+      background: var(--card);
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 10px 4px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      transition: 0.15s;
+    }
+    .sign-btn span {
+      display: block;
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+    .sign-btn.active {
+      border-color: var(--accent);
+      background: #eef6ff;
+      color: var(--accent);
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .card-title {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-text {
+      font-size: 15px;
+      line-height: 1.45;
+      color: #2c2d2e;
+    }
+    .locked-box {
+      background: linear-gradient(135deg, #fff8eb, #fff1d6);
+      border: 1px dashed var(--gold);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn-reward {
+      background: var(--gold);
+      color: #fff;
+    }
+    .btn-share {
+      background: var(--accent);
+      color: #fff;
+      margin-bottom: 24px;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>✨ Астропрогноз на сегодня</h1>
+    <p id="current-date">Загрузка даты...</p>
+  </div>
+
+  <div class="signs-grid" id="signs-grid"></div>
+
+  <div class="card">
+    <div class="card-title">🔮 Общий прогноз (<span id="selected-sign-title">Овен</span>)</div>
+    <div class="card-text" id="general-text">Загрузка прогноза...</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">❤️ Любовь, финансы и удача</div>
+    
+    <div id="locked-section" class="locked-box">
+      <div style="font-size: 14px; color: #555; margin-bottom: 6px;">
+        Узнайте, что ждет вас в любви, деньгах и с кем сегодня идеальная совместимость
+      </div>
+      <button class="btn btn-reward" onclick="unlockVipForecast()">🎬 Открыть за просмотр рекламы</button>
+    </div>
+
+    <div id="unlocked-section" class="hidden">
+      <p class="card-text"><b>❤️ Любовь:</b> <span id="love-text"></span></p>
+      <p class="card-text"><b>💰 Финансы:</b> <span id="money-text"></span></p>
+      <p class="card-text"><b>🍀 Удача дня:</b> <span id="luck-text"></span></p>
+    </div>
+  </div>
+
+  <button class="btn btn-share" onclick="shareToWall()">📢 Поделиться прогнозом на стене</button>
+
+  <script>
+    // 1. Инициализация VK Bridge
+    vkBridge.send('VKWebAppInit');
+
+    // Показываем нижний рекламный баннер (работает после подключения монетизации в кабинете ВК)
+    vkBridge.send('VKWebAppShowBannerAd', { banner_location: 'bottom' }).catch(() => {});
+
+    const SIGNS = [
+      { id: 'aries', name: 'Овен', icon: '♈' },
+      { id: 'taurus', name: 'Телец', icon: '♉' },
+      { id: 'gemini', name: 'Близнецы', icon: '♊' },
+      { id: 'cancer', name: 'Рак', icon: '♋' },
+      { id: 'leo', name: 'Лев', icon: '♌' },
+      { id: 'virgo', name: 'Дева', icon: '♍' },
+      { id: 'libra', name: 'Весы', icon: '♎' },
+      { id: 'scorpio', name: 'Скорпион', icon: '♏' },
+      { id: 'sagittarius', name: 'Стрелец', icon: '♐' },
+      { id: 'capricorn', name: 'Козерог', icon: '♑' },
+      { id: 'aquarius', name: 'Водолей', icon: '♒' },
+      { id: 'pisces', name: 'Рыбы', icon: '♓' }
+    ];
+
+    let currentSign = localStorage.getItem('user_sign') || 'aries';
+    let currentForecast = null;
+    let isVipUnlocked = false;
+
+    function renderSigns() {
+      const grid = document.getElementById('signs-grid');
+      grid.innerHTML = '';
+      SIGNS.forEach(s => {
+        const btn = document.createElement('div');
+        btn.className = 'sign-btn' + (s.id === currentSign ? ' active' : '');
+        btn.innerHTML = `<span>${s.icon}</span>${s.name}`;
+        btn.onclick = () => selectSign(s.id);
+        grid.appendChild(btn);
+      });
+    }
+
+    async function selectSign(signId) {
+      currentSign = signId;
+      localStorage.setItem('user_sign', signId);
+      renderSigns();
+
+      try {
+        const res = await fetch(`api.php?sign=${signId}`);
+        const json = await res.json();
+        if (json.ok) {
+          currentForecast = json.data;
+          document.getElementById('current-date').innerText = 'Прогноз на ' + json.date;
+          document.getElementById('selected-sign-title').innerText = json.data.name;
+          document.getElementById('general-text').innerText = json.data.general;
+          document.getElementById('love-text').innerText = json.data.love;
+          document.getElementById('money-text').innerText = json.data.money;
+          document.getElementById('luck-text').innerText = json.data.luck;
+        }
+      } catch (e) {
+        document.getElementById('general-text').innerText = 'Ошибка загрузки прогноза. Проверьте соединение.';
+      }
+    }
+
+    // Показ рекламы за вознаграждение (Rewarded Video)
+    function unlockVipForecast() {
+      vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
+        .then(data => {
+          if (data.result) {
+            showVipBlocks();
+          }
+        })
+        .catch(() => {
+          // Если монетизация еще на модерации или в браузере нет рекламы — открываем так, чтобы не ломать UX
+          showVipBlocks();
+        });
+    }
+
+    function showVipBlocks() {
+      isVipUnlocked = true;
+      document.getElementById('locked-section').classList.add('hidden');
+      document.getElementById('unlocked-section').classList.remove('hidden');
+    }
+
+    // Репост на стену пользователя
+    function shareToWall() {
+      if (!currentForecast) return;
+      const postText = `🔮 Мой гороскоп на сегодня (${currentForecast.name}):\n\n${currentForecast.general}\n\nУзнай свой прогноз в приложении 👇`;
+      vkBridge.send('VKWebAppShowWallPostBox', {
+        message: postText
+      }).catch(() => {});
+    }
+
+    renderSigns();
+    selectSign(currentSign);
+  </script>
+</body>
+</html>

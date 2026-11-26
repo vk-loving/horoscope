@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Настоящий Гороскоп</title>
+  <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+  <style>
+    :root {
+      --bg: #f2f3f5;
+      --card: #ffffff;
+      --text: #1c1d1f;
+      --subtext: #6d7885;
+      --accent: #2688eb;
+      --accent-soft: #eef6ff;
+      --gold: #ff9e00;
+      --gold-bg: #fff8eb;
+      --border: rgba(0, 0, 0, 0.08);
+      --nav-bg: rgba(255, 255, 255, 0.96);
+    }
+
+    body.dark {
+      --bg: #141414;
+      --card: #222226;
+      --text: #e1e3e6;
+      --subtext: #828a99;
+      --accent: #529ef4;
+      --accent-soft: rgba(82, 158, 244, 0.14);
+      --gold: #ffa726;
+      --gold-bg: rgba(255, 167, 38, 0.12);
+      --border: rgba(255, 255, 255, 0.08);
+      --nav-bg: rgba(34, 34, 38, 0.96);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: calc(14px + env(safe-area-inset-top)) 14px calc(86px + env(safe-area-inset-bottom));
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .container {
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 21px;
+      font-weight: 700;
+    }
+
+    .header p {
+      margin: 4px 0 0;
+      color: var(--subtext);
+      font-size: 13px;
+    }
+
+    .signs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .sign-btn {
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 9px 4px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      transition: transform 0.1s, border-color 0.15s, background 0.15s;
+    }
+
+    .sign-btn:active {
+      transform: scale(0.97);
+    }
+
+    .sign-btn span {
+      display: block;
+      font-size: 21px;
+      margin-bottom: 3px;
+    }
+
+    .sign-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-text {
+      font-size: 14.5px;
+      line-height: 1.5;
+      margin: 0 0 10px;
+    }
+
+    .card-text:last-child {
+      margin-bottom: 0;
+    }
+
+    .locked-box {
+      background: var(--gold-bg);
+      border: 1px dashed var(--gold);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .locked-desc {
+      font-size: 13.5px;
+      color: var(--subtext);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 13px 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+      opacity: 0.9;
+    }
+
+    .btn-reward {
+      background: var(--gold);
+      color: #ffffff;
+    }
+
+    .btn-share {
+      background: var(--accent);
+      color: #ffffff;
+      margin-top: 4px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Совместимость */
+    .compat-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .compat-col {
+      flex: 1;
+    }
+
+    .compat-label {
+      display: block;
+      font-size: 12px;
+      color: var(--subtext);
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .select-box {
+      width: 100%;
+      padding: 11px 10px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 22px;
+      padding: 8px 18px;
+      border-radius: 99px;
+      margin: 6px 0 12px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #7b61ff);
+      border-radius: 99px;
+      transition: width 0.35s ease;
+    }
+
+    /* Карта дня (Таро) */
+    .tarot-stage {
+      text-align: center;
+      padding: 8px 0;
+    }
+
+    .tarot-card-back {
+      width: 170px;
+      height: 250px;
+      margin: 0 auto 14px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #2b32b2, #1488cc);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(20, 136, 204, 0.25);
+      cursor: pointer;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      padding: 16px;
+      transition: transform 0.2s;
+    }
+
+    .tarot-card-back:active {
+      transform: scale(0.96);
+    }
+
+    .tarot-card-front {
+      width: 190px;
+      min-height: 240px;
+      margin: 0 auto 14px;
+      border-radius: 16px;
+      background: linear-gradient(160deg, #fffdf7, #f5ebd6);
+      color: #2c2416;
+      border: 2px solid #d4af37;
+      box-shadow: 0 8px 20px rgba(212, 175, 55, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .tarot-num {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #9e7b1c;
+      margin-bottom: 8px;
+    }
+
+    .tarot-emoji {
+      font-size: 54px;
+      margin: 8px 0;
+    }
+
+    .tarot-name {
+      font-size: 17px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    /* Нижняя панель навигации */
+    .tabbar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--nav-bg);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .tab-item {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--subtext);
+      cursor: pointer;
+      padding: 2px 0;
+      user-select: none;
+    }
+
+    .tab-item span {
+      display: block;
+      font-size: 20px;
+      margin-bottom: 2px;
+    }
+
+    .tab-item.active {
+      color: var(--accent);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ВКЛАДКА 1: ГОРОСКОП НА СЕГОДНЯ -->
+    <section id="tab-horoscope">
+      <div class="header">
+        <h1>✨ Астропрогноз на сегодня</h1>
+        <p id="current-date">Загрузка даты...</p>
+      </div>
+
+      <div class="signs-grid" id="signs-grid"></div>
+
+      <div class="card">
+        <div class="card-title">🔮 Общий прогноз (<span id="selected-sign-title">Овен</span>)</div>
+        <p class="card-text" id="general-text">Загрузка прогноза...</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">❤️ Любовь, финансы и удача</div>
+        <div id="locked-section" class="locked-box">
+          <div class="locked-desc">
+            Узнайте персональный прогноз в любви, денежных делах и счастливое число на сегодня
+          </div>
+          <button class="btn btn-reward" onclick="unlockVipForecast()">🎬 Открыть за просмотр рекламы</button>
+        </div>
+
+        <div id="unlocked-section" class="hidden">
+          <p class="card-text"><b>❤️ Любовь:</b> <span id="love-text"></span></p>
+          <p class="card-text"><b>💰 Финансы:</b> <span id="money-text"></span></p>
+          <p class="card-text"><b>🍀 Удача дня:</b> <span id="luck-text"></span></p>
+        </div>
+      </div>
+
+      <button class="btn btn-share" onclick="shareToWall('horoscope')">📢 Поделиться прогнозом на стене</button>
+    </section>
+
+    <!-- ВКЛАДКА 2: СОВМЕСТИМОСТЬ ЗНАКОВ -->
+    <section id="tab-compat" class="hidden">
+      <div class="header">
+        <h1>💞 Совместимость знаков</h1>
+        <p>Проверьте гармонию в любви, дружбе и делах</p>
+      </div>
+
+      <div class="card">
+        <div class="compat-row">
+          <div class="compat-col">
+            <label class="compat-label" for="sign-first">Ваш знак</label>
+            <select id="sign-first" class="select-box" onchange="updateCompatibility()"></select>
+          </div>
+          <div class="compat-col">
+            <label class="compat-label" for="sign-second">Знак партнёра</label>
+            <select id="sign-second" class="select-box" onchange="updateCompatibility()"></select>
+          </div>
+        </div>
+
+        <div style="text-align: center;">
+          <div class="score-badge" id="compat-score">85%</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="compat-fill" style="width: 85%;"></div>
+          </div>
+        </div>
+
+        <p class="card-text"><b>❤️ В отношениях:</b> <span id="compat-love"></span></p>
+        <p class="card-text"><b>🤝 В дружбе и работе:</b> <span id="compat-work"></span></p>
+        <p class="card-text"><b>💡 Совет паре:</b> <span id="compat-tip"></span></p>
+      </div>
+
+      <button class="btn btn-share" onclick="shareToWall('compat')">📢 Поделиться совместимостью</button>
+    </section>
+
+    <!-- ВКЛАДКА 3: КАРТА ДНЯ (ТАРО) -->
+    <section id="tab-tarot" class="hidden">
+      <div class="header">
+        <h1>🃏 Карта дня</h1>
+        <p>Персональная подсказка на текущие сутки</p>
+      </div>
+
+      <div class="card tarot-stage">
+        <div id="tarot-closed">
+          <div class="tarot-card-back" onclick="revealTarotCard()">
+            <div style="font-size: 38px; margin-bottom: 10px;">✨🌙✨</div>
+            <div style="font-size: 14px; font-weight: 600;">Нажмите, чтобы открыть карту дня</div>
+          </div>
+          <p class="card-text" style="color: var(--subtext); font-size: 13.5px;">
+            Сосредоточьтесь на важном вопросе и коснитесь рубашки карты
+          </p>
+        </div>
+
+        <div id="tarot-opened" class="hidden">
+          <div class="tarot-card-front">
+            <div class="tarot-num" id="tarot-arcana">АРКАН I</div>
+            <div class="tarot-emoji" id="tarot-icon">☀️</div>
+            <div class="tarot-name" id="tarot-title">Солнце</div>
+          </div>
+          <p class="card-text" style="text-align: left;"><b>Значение дня:</b> <span id="tarot-meaning"></span></p>
+          <p class="card-text" style="text-align: left;"><b>Совет карты:</b> <span id="tarot-advice"></span></p>
+        </div>
+      </div>
+
+      <button id="tarot-share-btn" class="btn btn-share hidden" onclick="shareToWall('tarot')">📢 Поделиться картой дня</button>
+    </section>
+  </div>
+
+  <!-- НИЖНЕЕ МЕНЮ -->
+  <nav class="tabbar">
+    <div class="tab-item active" id="nav-horoscope" onclick="switchTab('horoscope')">
+      <span>🔮</span>Гороскоп
+    </div>
+    <div class="tab-item" id="nav-compat" onclick="switchTab('compat')">
+      <span>💞</span>Совместимость
+    </div>
+    <div class="tab-item" id="nav-tarot" onclick="switchTab('tarot')">
+      <span>🃏</span>Карта дня
+    </div>
+  </nav>
+
+  <script>
+    const APP_URL = 'https://vk.com/app54915620';
+
+    // Инициализация VK Bridge и темы оформления
+    if (window.vkBridge) {
+      vkBridge.send('VKWebAppInit').catch(() => {});
+      vkBridge.subscribe((e) => {
+        if (e.detail && e.detail.type === 'VKWebAppUpdateConfig') {
+          const scheme = e.detail.data.scheme || '';
+          if (scheme.includes('dark') || scheme === 'space_gray') {
+            document.body.classList.add('dark');
+          } else {
+            document.body.classList.remove('dark');
+          }
+        }
+      });
+    }
+
+    const SIGNS = [
+      { id: 'aries', name: 'Овен', icon: '♈', element: 'fire' },
+      { id: 'taurus', name: 'Телец', icon: '♉', element: 'earth' },
+      { id: 'gemini', name: 'Близнецы', icon: '♊', element: 'air' },
+      { id: 'cancer', name: 'Рак', icon: '♋', element: 'water' },
+      { id: 'leo', name: 'Лев', icon: '♌', element: 'fire' },
+      { id: 'virgo', name: 'Дева', icon: '♍', element: 'earth' },
+      { id: 'libra', name: 'Весы', icon: '♎', element: 'air' },
+      { id: 'scorpio', name: 'Скорпион', icon: '♏', element: 'water' },
+      { id: 'sagittarius', name: 'Стрелец', icon: '♐', element: 'fire' },
+      { id: 'capricorn', name: 'Козерог', icon: '♑', element: 'earth' },
+      { id: 'aquarius', name: 'Водолей', icon: '♒', element: 'air' },
+      { id: 'pisces', name: 'Рыбы', icon: '♓', element: 'water' }
+    ];
+
+    const GENERAL_TEXTS = [
+      'Сегодня звёзды советуют проявить инициативу в делах, которые вы давно откладывали. Утро принесёт ясность, а вечер подойдёт для спокойного отдыха в кругу близких.',
+      'Благоприятный день для общения, новых идей и полезных знакомств. Доверяйте интуиции при принятии быстрых решений — она не подведёт.',
+      'День потребует внимательности к деталям. Не спешите давать обещания, сначала взвесьте все за и против — результат превзойдёт ожидания.',
+      'Отличное время для наведения порядка в мыслях и планах. Неожиданная новость во второй половине дня поднимет настроение и откроет новые перспективы.',
+      'Сегодня ваша энергия на высоте: используйте этот импульс, чтобы закрыть сложные задачи. Вечером позвольте себе небольшую награду за труды.',
+      'Звёзды рекомендуют не перегружать себя лишними заботами. Сосредоточьтесь на главном приоритете, а мелочи подождут до завтра.'
+    ];
+
+    const LOVE_TEXTS = [
+      'В личной жизни наступает период тёплого взаимопонимания. Искренний разговор поможет сблизиться ещё сильнее.',
+      'Возможен приятный знак внимания или неожиданное сообщение от человека, который вам симпатичен.',
+      'Сегодня важно слушать не только себя, но и партнёра — мягкость и забота творят чудеса.',
+      'Отличный вечер для романтической встречи или душевного разговора по душам.'
+    ];
+
+    const MONEY_TEXTS = [
+      'Финансовая ситуация стабильна. Хороший момент для планирования бюджета и разумных покупок.',
+      'Возможны небольшие приятные поступления или выгодное предложение, связанное с работой.',
+      'Избегайте спонтанных трат на эмоциях — лучше отложить средства на действительно важную цель.',
+      'Ваша практичность поможет найти способ сэкономить или увеличить доход в ближайшие недели.'
+    ];
+
+    const LUCK_TEXTS = [
+      'Счастливое число дня — 7. Удачное время для важных звонков — с 14:00 до 17:00.',
+      'Счастливое число дня — 3. Удача сопутствует тем, кто не боится задавать вопросы.',
+      'Счастливое число дня — 9. Обратите внимание на случайные совпадения — в них есть подсказка.',
+      'Счастливое число дня — 5. Благоприятный цвет дня — синий и серебристый.'
+    ];
+
+    const TAROT_CARDS = [
+      { arcana: 'АРКАН I', icon: '🪄', title: 'Маг', meaning: 'У вас есть все ресурсы и навыки, чтобы воплотить задуманное в жизнь. Действуйте уверенно.', advice: 'Берите инициативу в свои руки — сегодня многое зависит от вашего первого шага.' },
+      { arcana: 'АРКАН III', icon: '👑', title: 'Императрица', meaning: 'День изобилия, гармонии и творческого подъёма. Всё, за что вы берётесь с душой, принесёт плоды.', advice: 'Позаботьтесь о себе и своём комфорте, окружите себя красивыми вещами.' },
+      { arcana: 'АРКАН VI', icon: '💞', title: 'Влюблённые', meaning: 'День важного выбора и гармонии в отношениях. Сердце подскажет верное направление.', advice: 'Прислушивайтесь к внутреннему голосу, а не к чужим советам.' },
+      { arcana: 'АРКАН VII', icon: '🏆', title: 'Колесница', meaning: 'Быстрый прогресс, движение вперёд и победа над сомнениями. Отличное время для поездок и старта дел.', advice: 'Не сбавляйте темп и держите курс на главную цель.' },
+      { arcana: 'АРКАН X', icon: '🎡', title: 'Колесо Фортуны', meaning: 'Неожиданный поворот событий к лучшему. Судьба готовит приятный сюрприз или удачный шанс.', advice: 'Будьте открыты новым возможностям — случайности сегодня не случайны.' },
+      { arcana: 'АРКАН XVII', icon: '⭐', title: 'Звезда', meaning: 'Вдохновение, надежда и светлая полоса. Ваши мечты начинают обретать реальные очертания.', advice: 'Верьте в свою идею и не бойтесь строить смелые планы на будущее.' },
+      { arcana: 'АРКАН XIX', icon: '☀️', title: 'Солнце', meaning: 'Радость, ясность и успех во всех начинаниях. Любые тучи рассеиваются, уступая место теплу.', advice: 'Делитесь хорошим настроением с окружающими — оно вернётся к вам вдвойне.' },
+      { arcana: 'АРКАН XXI', icon: '🌍', title: 'Мир', meaning: 'Успешное завершение важного этапа и чувство внутреннего равновесия.', advice: 'Подведите итоги проделанной работы и поблагодарите себя за пройденный путь.' }
+    ];
+
+    let currentSign = localStorage.getItem('user_sign') || 'aries';
+    let currentForecast = null;
+    let currentCompat = null;
+    let currentTarot = null;
+
+    function getDaySeed() {
+      const now = new Date();
+      return now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    }
+
+    function formatTodayDate() {
+      const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+      const d = new Date();
+      return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} г.`;
+    }
+
+    function switchTab(tabName) {
+      ['horoscope', 'compat', 'tarot'].forEach(t => {
+        document.getElementById('tab-' + t).classList.toggle('hidden', t !== tabName);
+        document.getElementById('nav-' + t).classList.toggle('active', t === tabName);
+      });
+    }
+
+    function renderSigns() {
+      const grid = document.getElementById('signs-grid');
+      grid.innerHTML = '';
+      SIGNS.forEach(s => {
+        const btn = document.createElement('div');
+        btn.className = 'sign-btn' + (s.id === currentSign ? ' active' : '');
+        btn.innerHTML = `<span>${s.icon}</span>${s.name}`;
+        btn.onclick = () => selectSign(s.id);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectSign(signId) {
+      currentSign = signId;
+      localStorage.setItem('user_sign', signId);
+      renderSigns();
+
+      const signIndex = SIGNS.findIndex(s => s.id === signId);
+      const signObj = SIGNS[signIndex];
+      const seed = getDaySeed() + signIndex * 17;
+
+      currentForecast = {
+        name: signObj.name,
+        icon: signObj.icon,
+        general: GENERAL_TEXTS[seed % GENERAL_TEXTS.length],
+        love: LOVE_TEXTS[(seed + 1) % LOVE_TEXTS.length],
+        money: MONEY_TEXTS[(seed + 2) % MONEY_TEXTS.length],
+        luck: LUCK_TEXTS[(seed + 3) % LUCK_TEXTS.length]
+      };
+
+      document.getElementById('current-date').innerText = 'Прогноз на ' + formatTodayDate();
+      document.getElementById('selected-sign-title').innerText = currentForecast.name;
+      document.getElementById('general-text').innerText = currentForecast.general;
+      document.getElementById('love-text').innerText = currentForecast.love;
+      document.getElementById('money-text').innerText = currentForecast.money;
+      document.getElementById('luck-text').innerText = currentForecast.luck;
+    }
+
+    function unlockVipForecast() {
+      if (window.vkBridge) {
+        vkBridge.send('VKWebAppShowNativeAds', { ad_format: 'reward' })
+          .then(data => {
+            if (data && data.result) {
+              showVipBlocks();
+            }
+          })
+          .catch(() => {
+            showVipBlocks();
+          });
+      } else {
+        showVipBlocks();
+      }
+    }
+
+    function showVipBlocks() {
+      document.getElementById('locked-section').classList.add('hidden');
+      document.getElementById('unlocked-section').classList.remove('hidden');
+    }
+
+    function initCompatibility() {
+      const s1 = document.getElementById('sign-first');
+      const s2 = document.getElementById('sign-second');
+      SIGNS.forEach(s => {
+        s1.innerHTML += `<option value="${s.id}">${s.icon} ${s.name}</option>`;
+        s2.innerHTML += `<option value="${s.id}">${s.icon} ${s.name}</option>`;
+      });
+      s1.value = currentSign;
+      s2.value = 'leo';
+      updateCompatibility();
+    }
+
+    function updateCompatibility() {
+      const id1 = document.getElementById('sign-first').value;
+      const id2 = document.getElementById('sign-second').value;
+      const idx1 = SIGNS.findIndex(s => s.id === id1);
+      const idx2 = SIGNS.findIndex(s => s.id === id2);
+      const s1 = SIGNS[idx1];
+      const s2 = SIGNS[idx2];
+
+      let base = 68 + ((idx1 * 7 + idx2 * 13) % 30);
+      if (s1.element === s2.element) base = Math.min(98, base + 8);
+      if (id1 === id2) base = 92;
+
+      const loveDesc = base >= 85
+        ? `${s1.name} и ${s2.name} чувствуют друг друга с полуслова. Между вами сильное притяжение и общие жизненные ценности.`
+        : `Союз знаков ${s1.name} и ${s2.name} строится на взаимном интересе. Небольшие различия в темпераменте только подогревают чувства.`;
+
+      const workDesc = base >= 80
+        ? 'Отличный тандем для совместных проектов: один генерирует идеи, а второй помогает довести их до результата.'
+        : 'В деловых вопросах важно заранее распределять роли и договариваться о правилах — тогда успех обеспечен.';
+
+      const tipDesc = 'Больше открытых разговоров и совместных впечатлений — они укрепят вашу связь.';
+
+      currentCompat = { s1: s1.name, s2: s2.name, score: base, love: loveDesc };
+
+      document.getElementById('compat-score').innerText = base + '%';
+      document.getElementById('compat-fill').style.width = base + '%';
+      document.getElementById('compat-love').innerText = loveDesc;
+      document.getElementById('compat-work').innerText = workDesc;
+      document.getElementById('compat-tip').innerText = tipDesc;
+    }
+
+    function initTarot() {
+      const todayKey = 'tarot_opened_' + getDaySeed();
+      const idx = getDaySeed() % TAROT_CARDS.length;
+      currentTarot = TAROT_CARDS[idx];
+
+      document.getElementById('tarot-arcana').innerText = currentTarot.arcana;
+      document.getElementById('tarot-icon').innerText = currentTarot.icon;
+      document.getElementById('tarot-title').innerText = currentTarot.title;
+      document.getElementById('tarot-meaning').innerText = currentTarot.meaning;
+      document.getElementById('tarot-advice').innerText = currentTarot.advice;
+
+      if (localStorage.getItem(todayKey) === '1') {
+        revealTarotCard(false);
+      }
+    }
+
+    function revealTarotCard(save = true) {
+      if (save) {
+        localStorage.setItem('tarot_opened_' + getDaySeed(), '1');
+      }
+      document.getElementById('tarot-closed').classList.add('hidden');
+      document.getElementById('tarot-opened').classList.remove('hidden');
+      document.getElementById('tarot-share-btn').classList.remove('hidden');
+    }
+
+    function shareToWall(type) {
+      let postText = '';
+      if (type === 'horoscope' && currentForecast) {
+        postText = `🔮 Мой гороскоп на сегодня (${currentForecast.icon} ${currentForecast.name}):
+
+${currentForecast.general}
+
+Узнай свой прогноз в приложении 👇`;
+      } else if (type === 'compat' && currentCompat) {
+        postText = `💞 Наша совместимость (${currentCompat.s1} + ${currentCompat.s2}) — ${currentCompat.score}%!
+
+${currentCompat.love}
+
+Проверь свою совместимость 👇`;
+      } else if (type === 'tarot' && currentTarot) {
+        postText = `🃏 Моя карта дня — ${currentTarot.title} (${currentTarot.arcana}):
+
+${currentTarot.meaning}
+
+Вытяни свою карту дня 👇`;
+      }
+
+      if (window.vkBridge && postText) {
+        vkBridge.send('VKWebAppShowWallPostBox', {
+          message: postText,
+          attachments: APP_URL
+        }).catch(() => {});
+      }
+    }
+
+    renderSigns();
+    selectSign(currentSign);
+    initCompatibility();
+    initTarot();
+  </script>
+</body>
+</html>
